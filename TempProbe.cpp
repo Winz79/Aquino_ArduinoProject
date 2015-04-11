@@ -7,8 +7,6 @@
 
 void TempProbeClass::Init(uint8_t tempPin)
 {
-	
-	
 	oneWire = new OneWire(tempPin);
 	sensors = new DallasTemperature(oneWire);
 
@@ -66,7 +64,7 @@ void TempProbeClass::Init(uint8_t tempPin)
 }
 
 float TempProbeClass::GetTemp() {
-	Serial.print("Requqtest temp ... "); 
+	Serial.print("Request temp ... "); 
 	sensors->requestTemperatures();
 	Serial.println("DONE");
 	

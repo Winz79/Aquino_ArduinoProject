@@ -150,4 +150,5 @@ void loop()
 	if (Serial3.available()) {
 		Serial.write(Serial3.read());
 	}
+	Alarm.delay(50);
 }
