@@ -15,10 +15,10 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <None Include="RtcTesting.ino" />
+    <None Include="Aquino.ino" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Visual Micro\.RtcTesting.vsarduino.h">
+    <ClInclude Include="Visual Micro\.Aquino.vsarduino.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="TempProbe.h">
