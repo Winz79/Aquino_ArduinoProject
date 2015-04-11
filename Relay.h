@@ -14,12 +14,13 @@ class Relay
  protected:
 	 bool isNormallyOpen = true;
 	 uint8_t pin;
-	 bool isOn;
+	 bool _isOn;
  public:
 	Relay(uint8_t, bool);
 	void init();
 	void turnOn();
 	void turnOff();
+	bool isOn();
 };
 
 #endif

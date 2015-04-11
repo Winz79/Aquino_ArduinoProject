@@ -35,14 +35,13 @@ TempProbeClass TempProbe;
 //RTC_DS1307 RTC;
 //#define DS1307_I2C_ADDRESS 0x68
 
-WaterLevelProbeClass WaterLevelProbe(A0, A1, A2);
+WaterLevelProbeClass WaterLevelProbe(A0, A2, A1);
 
-Relay HeatingRelay(A12, true);
-Relay LightRelay(A9, true);
-Relay FilterRelay(A10, false);
-Relay PumpRelay(A11, true);
-
-float targetTemperature;
+Relay FilterRelay(A5, false);
+Relay HeatingRelay(A3, true);
+Relay PumpRelay(A6, true);
+Relay LightRelay(A4, true);
+Relay CO2Realy(A7, true);
 
 AlarmID_t temperatureTimer;
 AlarmID_t waterLevelTimer;
@@ -58,15 +57,8 @@ WifiManager wifiManager;
 
 
 void temperatureCheck() {
-	float temp = TempProbe.GetTemp();
-	Serial.print(" Temp : ");
-	Serial.print(temp);
-	Serial.println(" C ");
-	if (temp < targetTemperature)
-		HeatingRelay.turnOn();
-	else
-		HeatingRelay.turnOff();
-	wifiManager.UpdateTemp(temp);
+	if( TempProbe.GetTemp())
+		wifiManager.UpdateTemp(&TempProbe.temperature);
 }
 
 void waterLevelCheck() {
@@ -97,8 +89,7 @@ void setup()
 	Serial.begin(9600);
 	Serial.println("BEGIN");
 
-	TempProbe.Init(TEMPERATURE_PIN);
-	targetTemperature = 24.5;
+	TempProbe.Init(TEMPERATURE_PIN, 24.5, &HeatingRelay);
 	
 	setSyncProvider(RTC.get);
 	setSyncInterval(600);

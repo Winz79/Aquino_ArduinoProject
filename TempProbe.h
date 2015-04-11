@@ -12,17 +12,20 @@
 
 #include <OneWire.h>
 #include <DallasTemperature.h>
-
+#include "Relay.h"
 
 class TempProbeClass
 {
  OneWire* oneWire;
  DallasTemperature* sensors;
  DeviceAddress deviceAddress;
+ Relay* tempRelay;
+ float targetTemp;
 
  public:
-	 void Init(uint8_t pin);
-	 float GetTemp();
+	 float temperature;
+	 void Init(uint8_t pin, float temp, Relay* relay);
+	 bool GetTemp();
 };
 
 extern TempProbeClass TempProbe;

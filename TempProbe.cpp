@@ -5,8 +5,11 @@
 #include "TempProbe.h"
 #define TEMPERATURE_PRECISION 12
 
-void TempProbeClass::Init(uint8_t tempPin)
+void TempProbeClass::Init(uint8_t tempPin, float temp, Relay* relay)
 {
+	tempRelay = relay;
+	targetTemp = temp;
+
 	oneWire = new OneWire(tempPin);
 	sensors = new DallasTemperature(oneWire);
 
@@ -63,13 +66,40 @@ void TempProbeClass::Init(uint8_t tempPin)
 
 }
 
-float TempProbeClass::GetTemp() {
+
+bool TempProbeClass::GetTemp() {
 	Serial.print("Request temp ... "); 
-	sensors->requestTemperatures();
-	Serial.println("DONE");
+	if( sensors->requestTemperaturesByAddress(deviceAddress) )
+	{
+		temperature = sensors->getTempC(deviceAddress);
 	
-	return sensors->getTempC(deviceAddress);
+		Serial.print("SUCCESS Temp = ");
+		Serial.println(temperature);
+		Serial.println(" C");
+
+		if (temperature > targetTemp) {
+			if (!tempRelay->isOn())
+				Serial.println("Turn heater on");
+			tempRelay->turnOn();
+		}
+		else {
+			if (tempRelay->isOn())
+				Serial.println("Turn heater off");
+			tempRelay->turnOff();
+		}
+		return true;
+	}
+	else {
+		Serial.print(" FAILURE Try finding the first probe ");
+		if(sensors->getAddress(deviceAddress, 0))
+			Serial.println(" SUCCESS");
+		else
+			Serial.println(" FAILURE");
+		return false;
+	}
 }
+
+
 
 
 

@@ -7,7 +7,7 @@
 Relay::Relay(uint8_t rPin, bool normallyOpen) {
 	isNormallyOpen = normallyOpen;
 	pin = rPin;
-	isOn = !normallyOpen;
+	_isOn = !normallyOpen;
 	
 	pinMode(pin, OUTPUT);
 	digitalWrite(pin, isNormallyOpen);
@@ -15,11 +15,17 @@ Relay::Relay(uint8_t rPin, bool normallyOpen) {
 
 void Relay::turnOn() 
 {
+	_isOn = true;
 	digitalWrite(pin, !isNormallyOpen);
 }
 
 void Relay::turnOff()
 {
+	_isOn = false;
 	digitalWrite(pin, isNormallyOpen);
+}
+
+bool Relay::isOn() {
+	return _isOn;
 }
 

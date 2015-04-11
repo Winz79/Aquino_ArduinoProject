@@ -21,7 +21,7 @@ class WifiManager
 	ESP8266* wifi;
 public:
 	void init();
-	void UpdateTemp(float temp);
+	void UpdateTemp(float* temp);
 };
 
 #endif
