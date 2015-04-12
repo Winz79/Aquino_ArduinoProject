@@ -11,9 +11,9 @@
 
 enum WaterLevelState
 {
-	TooLow = 1,
-	OK,
-	TooHigh
+	TooLow = 0,
+	OK = 1,
+	TooHigh = 3
 };
 
 class WaterLevelProbeClass

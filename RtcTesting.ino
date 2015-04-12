@@ -187,6 +187,7 @@ void setup()
 	else
 		CO2Relay.turnOff();
 
+        FilterRelay.turnOn();
 	wifiManager.init();
 }
 
@@ -196,9 +197,10 @@ void loop()
 	if (Serial.available()) {
 		Serial3.write(Serial.read());
 	}
-	while (Serial3.available()) {
-                Serial.print("ESP -> ");
-		Serial.write(Serial3.read());
-	}
-	Alarm.delay(10);
+      if(Serial3.available()) {
+        Serial.print("ESP -> ");
+        while (Serial3.available()) 
+            Serial.write(Serial3.read());
+      }
+  	Alarm.delay(10);
 }
