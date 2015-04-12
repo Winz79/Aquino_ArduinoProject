@@ -74,7 +74,7 @@ bool TempProbeClass::GetTemp() {
 		temperature = sensors->getTempC(deviceAddress);
 	
 		Serial.print("SUCCESS Temp = ");
-		Serial.println(temperature);
+		Serial.print(temperature);
 		Serial.println(" C");
 
 		if (temperature > targetTemp) {

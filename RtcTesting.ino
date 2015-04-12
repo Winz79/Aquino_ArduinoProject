@@ -88,8 +88,14 @@ void initSetting() {
 }
 
 void temperatureCheck() {
-	if( TempProbe.GetTemp())
-		wifiManager.UpdateStatus((int)(TempProbe.temperature * 10000),WaterLevelProbe.state,0);
+	if( TempProbe.GetTemp()) {
+                int t = (int)(TempProbe.temperature * 100.0f);
+
+                Serial.print("TempProbe s temp =  = ");
+		Serial.println(t);
+
+		wifiManager.UpdateStatus((int)(t),WaterLevelProbe.state,0);
+        }
 }
 
 void waterLevelCheck() {
