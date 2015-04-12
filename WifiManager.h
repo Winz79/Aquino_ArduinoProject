@@ -14,14 +14,11 @@
 #define PASSWORD "EUREKA79"
 #define THINGSPEAK "184.106.153.149" // thingspeak.com
 
-#include <WeeESP8266.h>
-
 class WifiManager
 {
-	ESP8266* wifi;
 public:
 	void init();
-	void UpdateTemp(float* temp);
+	void UpdateStatus(int temp, uint8_t levelStatus, uint8_t relayStatus);
 };
 
 #endif

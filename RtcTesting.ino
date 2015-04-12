@@ -11,6 +11,7 @@
 
 
 
+#include <EEPROM.h>
 #include <Wire.h>
 #include <Time.h>
 #include <TimeAlarms.h>
@@ -18,47 +19,77 @@
 
 #include "Relay.h"
 #include "WaterLevelProbe.h"
-#include <WeeESP8266.h>
-#include <doxygen.h>
 #include "WifiManager.h"
 
 #include <DallasTemperature.h>
 #include <OneWire.h>
 #include "TempProbe.h"
 
+#define SETTINGS_START 0;
 
 #define TEMPERATURE_PIN 3 // Temperature Pin
 #define TEMPERATURE_PRECISION 9
+
 TempProbeClass TempProbe;
 
+
+struct SettingsStruct {
+	float targetTemperature;
+	time_t startLightTime;
+	time_t stopLightTime;
+	time_t startCo2Time;
+	time_t stopCo2Time;
+} settings;
 
 //RTC_DS1307 RTC;
 //#define DS1307_I2C_ADDRESS 0x68
 
 WaterLevelProbeClass WaterLevelProbe(A0, A2, A1);
 
-Relay FilterRelay(A5, false);
-Relay HeatingRelay(A3, true);
-Relay PumpRelay(A6, true);
-Relay LightRelay(A4, true);
-Relay CO2Realy(A7, true);
+Relay FilterRelay(A3, false);
+Relay HeatingRelay(A4, true);
+Relay PumpRelay(A5, true);
+Relay LightRelay(A6, true);
+Relay CO2Relay(A7, true);
 
 AlarmID_t temperatureTimer;
 AlarmID_t waterLevelTimer;
 AlarmID_t startLightTimer;
 AlarmID_t stopLightTimer;
+AlarmID_t startCO2Timer;
+AlarmID_t stopCO2Timer;
 
+time_t startLightTime = AlarmHMS(12, 30, 00);
+time_t stopLightTime = AlarmHMS(22, 00, 00);;
 
-time_t startLightTime = AlarmHMS(00, 00, 00);
-time_t stopLightTime = AlarmHMS(23, 59, 00);;
-
+time_t startCo2Time = AlarmHMS(13, 30, 00);
+time_t stopCo2Time = AlarmHMS(21, 00, 00);;
 
 WifiManager wifiManager;
 
+void saveSettings() {
+	for (unsigned int t = 0; t<sizeof(settings); t++)
+		EEPROM.write(t, *((char*)&settings + t));
+}
+
+void loadSettings() {
+	for (unsigned int t = 0; t<sizeof(settings); t++)
+		*((char*)&settings + t) = EEPROM.read(t);
+}
+
+
+void initSetting() {
+	settings = {
+		25.0f,
+		AlarmHMS(12, 30, 00), AlarmHMS(22, 00, 00),
+		AlarmHMS(13, 30, 00), AlarmHMS(21, 00, 00)
+	};
+	saveSettings();
+}
 
 void temperatureCheck() {
 	if( TempProbe.GetTemp())
-		wifiManager.UpdateTemp(&TempProbe.temperature);
+		wifiManager.UpdateStatus((int)(TempProbe.temperature * 10000),WaterLevelProbe.state,0);
 }
 
 void waterLevelCheck() {
@@ -82,44 +113,17 @@ void turnLightOff() {
 	LightRelay.turnOff();
 }
 
-
-void setup()
-{
-	
-	Serial.begin(9600);
-	Serial.println("BEGIN");
-
-	TempProbe.Init(TEMPERATURE_PIN, 24.5, &HeatingRelay);
-	
-	setSyncProvider(RTC.get);
-	setSyncInterval(600);
-
-	temperatureTimer = Alarm.timerRepeat(15, temperatureCheck);
-	waterLevelTimer = Alarm.timerRepeat(10, waterLevelCheck);
-	startLightTimer = Alarm.alarmRepeat(startLightTime, turnLightOn);
-	stopLightTimer = Alarm.alarmRepeat(stopLightTime, turnLightOff);
-	time_t time = now() - previousMidnight(now());
-
-	Serial.println(startLightTime); 
-	Serial.println(time);
-	Serial.println(stopLightTime);
-
-
-	if (time > startLightTime && time < stopLightTime) {
-		LightRelay.turnOn();
-			}
-	else
-		LightRelay.turnOff();
-
-	wifiManager.init();
+void turnCo2On() {
+	CO2Relay.turnOn();
 }
 
+void turnCo2Off() {
+	CO2Relay.turnOff();
+}
 
-void loop()
-{
-	/*
+void printNow() {
 	time_t now = RTC.get();
-	Serial.print(" RTC Running ? ");
+	Serial.print("### RTC Running ? ");
 	Serial.println(RTC.chipPresent());
 	Serial.print(year(), DEC);
 	Serial.print('/');
@@ -133,8 +137,56 @@ void loop()
 	Serial.print(':');
 	Serial.print(second(), DEC);
 	Serial.println();
-	*/
 
+}
+void setup()
+{
+	
+	Serial.begin(9600);
+	Serial.println("BEGIN");
+
+
+	Serial.println("###  Initializing Settings");
+	initSetting();
+	Serial.print("Target Temp = "); Serial.println(settings.targetTemperature);
+	Serial.print("Light Timers = Start : "); Serial.print(settings.startLightTime); Serial.print(" Stop : ");  Serial.println(settings.stopLightTime);
+	Serial.print("CO2 Timers = Start : "); Serial.print(settings.startCo2Time); Serial.print(" Stop : ");  Serial.println(settings.stopCo2Time);
+
+	TempProbe.Init(TEMPERATURE_PIN, settings.targetTemperature, &HeatingRelay);
+	
+	setSyncProvider(RTC.get);
+	setSyncInterval(600);
+	printNow();
+
+	temperatureTimer = Alarm.timerRepeat(15, temperatureCheck);
+	waterLevelTimer = Alarm.timerRepeat(10, waterLevelCheck);
+
+	startLightTimer = Alarm.alarmRepeat(settings.startLightTime, turnLightOn);
+	stopLightTimer = Alarm.alarmRepeat(settings.stopLightTime, turnLightOff);
+
+	startCO2Timer = Alarm.alarmRepeat(settings.startCo2Time, turnCo2On);
+	stopCO2Timer = Alarm.alarmRepeat(settings.stopCo2Time, turnCo2Off);
+
+	time_t time = now() - previousMidnight(now());
+
+	if (time > settings.startLightTime && time < settings.startLightTime) {
+		LightRelay.turnOn();
+			}
+	else
+		LightRelay.turnOff();
+
+	if (time > settings.startCo2Time && time < settings.stopCo2Time) {
+		CO2Relay.turnOn();
+	}
+	else
+		CO2Relay.turnOff();
+
+	wifiManager.init();
+}
+
+
+void loop()
+{
 	if (Serial.available()) {
 		Serial3.write(Serial.read());
 	}

@@ -11,7 +11,7 @@
 
 enum WaterLevelState
 {
-	TooLow,
+	TooLow = 1,
 	OK,
 	TooHigh
 };
