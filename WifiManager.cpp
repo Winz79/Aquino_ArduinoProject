@@ -20,7 +20,9 @@ void WifiManager::UpdateStatus(int temp, uint8_t levelStatus, uint8_t relayStatu
 	}
 	else {
                 lastUpdate = RTC.get();
-		Serial.println("ESP -> sendTemperature(" + String(temp) + "," + String(levelStatus) + "," + String(relayStatus) + ")");
+		Serial.println("-> ESP  sendTemperature(" + String(temp) + "," + String(levelStatus) + "," + String(relayStatus) + ")");
+
+		Serial3.flush();
 		Serial3.println("sendTemperature(" + String(temp) + "," + String(levelStatus) + "," + String(relayStatus) +")");
 	}
 }

@@ -196,8 +196,9 @@ void loop()
 	if (Serial.available()) {
 		Serial3.write(Serial.read());
 	}
-	if (Serial3.available()) {
+	while (Serial3.available()) {
+                Serial.print("ESP -> ");
 		Serial.write(Serial3.read());
 	}
-	Alarm.delay(200);
+	Alarm.delay(10);
 }
