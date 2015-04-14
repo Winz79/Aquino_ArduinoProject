@@ -77,7 +77,7 @@ bool TempProbeClass::GetTemp() {
 		Serial.print(temperature);
 		Serial.println(" C");
 
-		if (temperature > targetTemp) {
+		if (temperature < targetTemp) {
 			if (!tempRelay->isOn())
 				Serial.println("Turn heater on");
 			tempRelay->turnOn();

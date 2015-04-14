@@ -91,3 +91,4 @@ end
 
 -- send data every X ms to thing speak
 tmr.alarm(0, 10000, 1, function() sendData() end )
+
