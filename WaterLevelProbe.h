@@ -18,14 +18,16 @@ enum WaterLevelState
 
 class WaterLevelProbeClass
 {
+         WaterLevelState state;
 protected:
 	 uint8_t highLvlPin;
 	 uint8_t lowLvlPin;
 	 uint8_t powerPin;
  public:
-	 WaterLevelState state;
+	 
 	 WaterLevelProbeClass(uint8_t, uint8_t , uint8_t);
 	 void checkLevels();
+         uint8_t getState();
 };
 #endif
 

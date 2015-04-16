@@ -77,6 +77,17 @@ void loadSettings() {
 		*((char*)&settings + t) = EEPROM.read(t);
 }
 
+uint8_t getRelaysStatus() {
+	uint8_t status = 0;
+	
+	status |= (FilterRelay.isOn() << 0);
+	status |= (HeatingRelay.isOn() << 1);
+	status |= (PumpRelay.isOn() << 2);
+	status |= (LightRelay.isOn() << 3);
+	status |= (CO2Relay.isOn() << 4);
+
+	return status;
+}
 
 void initSetting() {
 	settings = {
@@ -94,21 +105,22 @@ void temperatureCheck() {
                 Serial.print("TempProbe s temp =  = ");
 		Serial.println(t);
 
-		wifiManager.UpdateStatus((int)(t),WaterLevelProbe.state,0);
+		wifiManager.UpdateStatus((int)(t), WaterLevelProbe.getState(), getRelaysStatus());
         }
 }
 
 void waterLevelCheck() {
 	WaterLevelProbe.checkLevels();
-	if (WaterLevelProbe.state == TooLow) {
+	if (WaterLevelProbe.getState() == TooLow) {
 		Alarm.write(waterLevelTimer, 1);
 		PumpRelay.turnOn();
 	}
-	else if (WaterLevelProbe.state == TooHigh) {
+	else if (WaterLevelProbe.getState() == TooHigh) {
 		PumpRelay.turnOff();
 		Alarm.write(waterLevelTimer, 15);
 	}
-	Serial.println(WaterLevelProbe.state);
+	Serial.print("Relay Satus = ");
+	Serial.println(WaterLevelProbe.getState());
 }
 
 void turnLightOn() {
@@ -128,26 +140,21 @@ void turnCo2Off() {
 }
 
 void printNow() {
-	time_t now = RTC.get();
 	Serial.print("### RTC Running ? ");
 	Serial.println(RTC.chipPresent());
-	Serial.print(year(), DEC);
-	Serial.print('/');
-	Serial.print(month(), DEC);
-	Serial.print('/');
-	Serial.print(day(), DEC);
-	Serial.print(' ');
-	Serial.print(hour(), DEC);
-	Serial.print(':');
-	Serial.print(minute(), DEC);
-	Serial.print(':');
-	Serial.print(second(), DEC);
-	Serial.println();
-
+	Serial.print(RTC.get());
 }
+
+const int ledPin = 12;
+int ledState = LOW;             // ledState used to set the LED
+long previousMillis = 0;        // will store last time LED was updated
+long interval = 100;  
+
+
 void setup()
 {
-	
+        digitalWrite(13, LOW);
+	pinMode(ledPin, OUTPUT);
 	Serial.begin(9600);
 	Serial.println("BEGIN");
 
@@ -174,6 +181,8 @@ void setup()
 	stopCO2Timer = Alarm.alarmRepeat(settings.stopCo2Time, turnCo2Off);
 
 	time_t time = now() - previousMidnight(now());
+	
+	Serial.print("Now = "); Serial.print(now()); Serial.print("Time = "); Serial.println(time);
 
 	if (time > settings.startLightTime && time < settings.startLightTime) {
 		LightRelay.turnOn();
@@ -203,4 +212,21 @@ void loop()
             Serial.write(Serial3.read());
       }
   	Alarm.delay(10);
+  
+    unsigned long currentMillis = millis();
+ 
+    if(currentMillis - previousMillis > interval) {
+      // save the last time you blinked the LED 
+      previousMillis = currentMillis;   
+   
+      // if the LED is off turn it on and vice-versa:
+      if (ledState == LOW)
+        ledState = HIGH;
+      else
+        ledState = LOW;
+       
+      // set the LED with the ledState of the variable:
+      digitalWrite(ledPin, ledState);
+   }
+  
 }

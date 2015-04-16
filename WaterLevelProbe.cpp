@@ -18,6 +18,9 @@ WaterLevelProbeClass::WaterLevelProbeClass(uint8_t lowPin, uint8_t highPin, uint
 	digitalWrite(powerPin, LOW);
 }
 
+uint8_t WaterLevelProbeClass::getState() {
+	return (uint8_t)state;
+}
 
 void WaterLevelProbeClass::checkLevels() {
 	Serial.print("Checking Water Levels : ");
