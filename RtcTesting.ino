@@ -1,5 +1,5 @@
- //
-// Maurice Ribble 
+//
+// Maurice Ribble
 // 4-17-2008
 // http://www.glacialwanderer.com/hobbyrobotics
 
@@ -34,11 +34,11 @@ TempProbeClass TempProbe;
 
 
 struct SettingsStruct {
-	float targetTemperature;
-	time_t startLightTime;
-	time_t stopLightTime;
-	time_t startCo2Time;
-	time_t stopCo2Time;
+  float targetTemperature;
+  time_t startLightTime;
+  time_t stopLightTime;
+  time_t startCo2Time;
+  time_t stopCo2Time;
 } settings;
 
 //RTC_DS1307 RTC;
@@ -68,13 +68,13 @@ time_t stopCo2Time = AlarmHMS(21, 00, 00);;
 WifiManager wifiManager;
 
 void saveSettings() {
-	for (unsigned int t = 0; t<sizeof(settings); t++)
-		EEPROM.write(t, *((char*)&settings + t));
+  for (unsigned int t = 0; t < sizeof(settings); t++)
+    EEPROM.write(t, *((char*)&settings + t));
 }
 
 void loadSettings() {
-	for (unsigned int t = 0; t<sizeof(settings); t++)
-		*((char*)&settings + t) = EEPROM.read(t);
+  for (unsigned int t = 0; t < sizeof(settings); t++)
+    *((char*)&settings + t) = EEPROM.read(t);
 }
 
 uint8_t getRelaysStatus() {
@@ -90,21 +90,22 @@ uint8_t getRelaysStatus() {
 }
 
 void initSetting() {
-	settings = {
-		25.0f,
-		AlarmHMS(12, 30, 00), AlarmHMS(22, 00, 00),
-		AlarmHMS(13, 30, 00), AlarmHMS(21, 00, 00)
-	};
-	saveSettings();
+  settings = {
+    25.0f,
+    AlarmHMS(12, 30, 00), AlarmHMS(22, 00, 00),
+    AlarmHMS(13, 30, 00), AlarmHMS(21, 00, 00)
+  };
+  saveSettings();
 }
 
 void temperatureCheck() {
-	if( TempProbe.GetTemp()) {
-                int t = (int)(TempProbe.temperature * 100.0f);
+  if ( TempProbe.GetTemp()) {
+    int t = (int)(TempProbe.temperature * 100.0f);
 
-                Serial.print("TempProbe s temp =  = ");
-		Serial.println(t);
+    Serial.print("TempProbe s temp =  = ");
+    Serial.println(t);
 
+<<<<<<< HEAD
 		wifiManager.UpdateStatus((int)(t), WaterLevelProbe.getState(), getRelaysStatus());
         }
 }
@@ -121,25 +122,43 @@ void waterLevelCheck() {
 	}
 	Serial.print("Relay Satus = ");
 	Serial.println(WaterLevelProbe.getState());
+=======
+    wifiManager.UpdateStatus((int)(t), WaterLevelProbe.state, 0);
+  }
+}
+
+void waterLevelCheck() {
+  WaterLevelProbe.checkLevels();
+  if (WaterLevelProbe.state == TooLow) {
+    Alarm.write(waterLevelTimer, 1);
+    PumpRelay.turnOn();
+  }
+  else if (WaterLevelProbe.state == TooHigh) {
+    PumpRelay.turnOff();
+    Alarm.write(waterLevelTimer, 15);
+  }
+  Serial.println(WaterLevelProbe.state);
+>>>>>>> origin/master
 }
 
 void turnLightOn() {
-	LightRelay.turnOn();
+  LightRelay.turnOn();
 }
 
 void turnLightOff() {
-	LightRelay.turnOff();
+  LightRelay.turnOff();
 }
 
 void turnCo2On() {
-	CO2Relay.turnOn();
+  CO2Relay.turnOn();
 }
 
 void turnCo2Off() {
-	CO2Relay.turnOff();
+  CO2Relay.turnOff();
 }
 
 void printNow() {
+<<<<<<< HEAD
 	Serial.print("### RTC Running ? ");
 	Serial.println(RTC.chipPresent());
 	Serial.print(RTC.get());
@@ -157,52 +176,139 @@ void setup()
 	pinMode(ledPin, OUTPUT);
 	Serial.begin(9600);
 	Serial.println("BEGIN");
+=======
+  time_t n = RTC.get();
+  if ( n == 0) {
+    SetupRtc();
+  }
+  Serial.print("### RTC Running :  ");
+  Serial.print(RTC.chipPresent());
+  Serial.print("   Now = "); ;
+  Serial.println(RTC.get());
+}
 
+const char *monthName[12] = {
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+};
 
-	Serial.println("###  Initializing Settings");
-	initSetting();
-	Serial.print("Target Temp = "); Serial.println(settings.targetTemperature);
-	Serial.print("Light Timers = Start : "); Serial.print(settings.startLightTime); Serial.print(" Stop : ");  Serial.println(settings.stopLightTime);
-	Serial.print("CO2 Timers = Start : "); Serial.print(settings.startCo2Time); Serial.print(" Stop : ");  Serial.println(settings.stopCo2Time);
+tmElements_t tm;
 
-	TempProbe.Init(TEMPERATURE_PIN, settings.targetTemperature, &HeatingRelay);
-	
-	setSyncProvider(RTC.get);
-	setSyncInterval(600);
-	printNow();
+bool getTime(const char *str)
+{
+  int Hour, Min, Sec;
 
-	temperatureTimer = Alarm.timerRepeat(15, temperatureCheck);
-	waterLevelTimer = Alarm.timerRepeat(10, waterLevelCheck);
+  if (sscanf(str, "%d:%d:%d", &Hour, &Min, &Sec) != 3) return false;
+  tm.Hour = Hour;
+  tm.Minute = Min;
+  tm.Second = Sec;
+  return true;
+}
 
-	startLightTimer = Alarm.alarmRepeat(settings.startLightTime, turnLightOn);
-	stopLightTimer = Alarm.alarmRepeat(settings.stopLightTime, turnLightOff);
+bool getDate(const char *str)
+{
+  char Month[12];
+  int Day, Year;
+  uint8_t monthIndex;
 
-	startCO2Timer = Alarm.alarmRepeat(settings.startCo2Time, turnCo2On);
-	stopCO2Timer = Alarm.alarmRepeat(settings.stopCo2Time, turnCo2Off);
+  if (sscanf(str, "%s %d %d", Month, &Day, &Year) != 3) return false;
+  for (monthIndex = 0; monthIndex < 12; monthIndex++) {
+    if (strcmp(Month, monthName[monthIndex]) == 0) break;
+  }
+  if (monthIndex >= 12) return false;
+  tm.Day = Day;
+  tm.Month = monthIndex + 1;
+  tm.Year = CalendarYrToTm(Year);
+  return true;
+}
 
+void SetupRtc() {
+  bool parse = false;
+  bool config = false;
+
+  // get the date and time the compiler was run
+  if (getDate(__DATE__) && getTime(__TIME__)) {
+    parse = true;
+    // and configure the RTC with this info
+    if (RTC.write(tm)) {
+      config = true;
+    }
+  }
+
+  if (parse && config) {
+    Serial.print("DS1307 configured Time=");
+    Serial.print(__TIME__);
+    Serial.print(", Date=");
+    Serial.println(__DATE__);
+  } else if (parse) {
+    Serial.println("DS1307 Communication Error :-{");
+    Serial.println("Please check your circuitry");
+  } else {
+    Serial.print("Could not parse info from the compiler, Time=\"");
+    Serial.print(__TIME__);
+    Serial.print("\", Date=\"");
+    Serial.print(__DATE__);
+    Serial.println("\"");
+  }
+}
+
+void setup()
+{
+  delay(2000);
+>>>>>>> origin/master
+
+  Serial.begin(9600);
+  Serial.println("BEGIN");
+
+  Serial.println("###  Initializing Settings");
+  initSetting();
+  Serial.print("Target Temp = "); Serial.println(settings.targetTemperature);
+  Serial.print("Light Timers = Start : "); Serial.print(settings.startLightTime); Serial.print(" Stop : ");  Serial.println(settings.stopLightTime);
+  Serial.print("CO2 Timers = Start : "); Serial.print(settings.startCo2Time); Serial.print(" Stop : ");  Serial.println(settings.stopCo2Time);
+
+  TempProbe.Init(TEMPERATURE_PIN, settings.targetTemperature, &HeatingRelay);
+
+  setSyncProvider(RTC.get);
+  setSyncInterval(600);
+  printNow();
+
+  temperatureTimer = Alarm.timerRepeat(15, temperatureCheck);
+  waterLevelTimer = Alarm.timerRepeat(10, waterLevelCheck);
+
+  startLightTimer = Alarm.alarmRepeat(settings.startLightTime, turnLightOn);
+  stopLightTimer = Alarm.alarmRepeat(settings.stopLightTime, turnLightOff);
+
+<<<<<<< HEAD
 	time_t time = now() - previousMidnight(now());
 	
 	Serial.print("Now = "); Serial.print(now()); Serial.print("Time = "); Serial.println(time);
+=======
+  startCO2Timer = Alarm.alarmRepeat(settings.startCo2Time, turnCo2On);
+  stopCO2Timer = Alarm.alarmRepeat(settings.stopCo2Time, turnCo2Off);
+>>>>>>> origin/master
 
-	if (time > settings.startLightTime && time < settings.startLightTime) {
-		LightRelay.turnOn();
-			}
-	else
-		LightRelay.turnOff();
+  time_t time = now() - previousMidnight(now());
+  Serial.print ( "Time = ");         Serial.println ( time) ;
+  if (time > settings.startLightTime && time < settings.startLightTime) {
+    LightRelay.turnOn();
+  }
+  else
+    LightRelay.turnOff();
 
-	if (time > settings.startCo2Time && time < settings.stopCo2Time) {
-		CO2Relay.turnOn();
-	}
-	else
-		CO2Relay.turnOff();
+  if (time > settings.startCo2Time && time < settings.stopCo2Time) {
+    CO2Relay.turnOn();
+  }
+  else
+    CO2Relay.turnOff();
 
-        FilterRelay.turnOn();
-	wifiManager.init();
+  FilterRelay.turnOn();
+  wifiManager.init();
 }
 
 
 void loop()
 {
+<<<<<<< HEAD
 	if (Serial.available()) {
 		Serial3.write(Serial.read());
 	}
@@ -229,4 +335,15 @@ void loop()
       digitalWrite(ledPin, ledState);
    }
   
+=======
+  if (Serial.available()) {
+    Serial3.write(Serial.read());
+  }
+  if (Serial3.available()) {
+    Serial.print("ESP -> ");
+    while (Serial3.available())
+      Serial.write(Serial3.read());
+  }
+  Alarm.delay(10);
+>>>>>>> origin/master
 }
