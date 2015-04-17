@@ -11,13 +11,12 @@
 #ifndef _VSARDUINO_H_
 #define _VSARDUINO_H_
 #define __AVR_ATmega2560__
-#define ARDUINO 161
+#define ARDUINO 163
 #define ARDUINO_MAIN
 #define __AVR__
 #define __avr__
 #define F_CPU 16000000L
 #define __cplusplus
-#define GCC_VERSION 40801
 #define ARDUINO_ARCH_AVR
 #define ARDUINO_AVR_MEGA2560
 #define __inline__
@@ -79,6 +78,8 @@ extern "C" void __cxa_pure_virtual() {;}
 #define portInputRegister(P)
 #define portModeRegister(P)
 #include <RtcTesting.ino>
+#include <CmdMessenger.cpp>
+#include <CmdMessenger.h>
 #include <Relay.cpp>
 #include <Relay.h>
 #include <TempProbe.cpp>

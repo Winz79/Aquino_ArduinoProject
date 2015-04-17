@@ -25,6 +25,9 @@
 #include <OneWire.h>
 #include "TempProbe.h"
 
+#include "CmdMessenger.h"
+
+
 #define SETTINGS_START 0;
 
 #define TEMPERATURE_PIN 3 // Temperature Pin
@@ -46,11 +49,21 @@ struct SettingsStruct {
 
 WaterLevelProbeClass WaterLevelProbe(A0, A2, A1);
 
-Relay FilterRelay(A3, false);
-Relay HeatingRelay(A4, true);
-Relay PumpRelay(A5, true);
-Relay LightRelay(A6, true);
-Relay CO2Relay(A7, true);
+Relay Relays[8];
+
+#define FILTER 0
+#define HEATING 1
+#define PUMP 2
+#define LIGHT 3
+#define CO2 4
+
+void InitRelays() {
+	Relays[FILTER] = Relay(A3, false);//Filter
+	Relays[HEATING] = Relay(A4, true);//Heating
+	Relays[PUMP] = Relay(A5, true);//Pump
+	Relays[LIGHT] = Relay(A6, true);//Light
+	Relays[CO2] = Relay(A7, true);//CO2
+}
 
 AlarmID_t temperatureTimer;
 AlarmID_t waterLevelTimer;
@@ -79,13 +92,9 @@ void loadSettings() {
 
 uint8_t getRelaysStatus() {
 	uint8_t status = 0;
-	
-	status |= (FilterRelay.isOn() << 0);
-	status |= (HeatingRelay.isOn() << 1);
-	status |= (PumpRelay.isOn() << 2);
-	status |= (LightRelay.isOn() << 3);
-	status |= (CO2Relay.isOn() << 4);
-
+	for (uint8_t i = 0; i < sizeof(Relays) / sizeof(*Relays); i++) {
+		status |= (Relays[i].isOn() << i);
+	}
 	return status;
 }
 
@@ -99,93 +108,55 @@ void initSetting() {
 }
 
 void temperatureCheck() {
-  if ( TempProbe.GetTemp()) {
-    int t = (int)(TempProbe.temperature * 100.0f);
+	if (TempProbe.GetTemp()) {
+		int t = (int)(TempProbe.temperature * 100.0f);
 
-    Serial.print("TempProbe s temp =  = ");
-    Serial.println(t);
+		Serial.print("TempProbe s temp =  = ");
+		Serial.println(t);
 
-<<<<<<< HEAD
 		wifiManager.UpdateStatus((int)(t), WaterLevelProbe.getState(), getRelaysStatus());
-        }
+	}
 }
 
 void waterLevelCheck() {
 	WaterLevelProbe.checkLevels();
 	if (WaterLevelProbe.getState() == TooLow) {
 		Alarm.write(waterLevelTimer, 1);
-		PumpRelay.turnOn();
+		Relays[PUMP].turnOn();
 	}
 	else if (WaterLevelProbe.getState() == TooHigh) {
-		PumpRelay.turnOff();
+		Relays[PUMP].turnOff();
 		Alarm.write(waterLevelTimer, 15);
 	}
 	Serial.print("Relay Satus = ");
 	Serial.println(WaterLevelProbe.getState());
-=======
-    wifiManager.UpdateStatus((int)(t), WaterLevelProbe.state, 0);
-  }
 }
 
-void waterLevelCheck() {
-  WaterLevelProbe.checkLevels();
-  if (WaterLevelProbe.state == TooLow) {
-    Alarm.write(waterLevelTimer, 1);
-    PumpRelay.turnOn();
-  }
-  else if (WaterLevelProbe.state == TooHigh) {
-    PumpRelay.turnOff();
-    Alarm.write(waterLevelTimer, 15);
-  }
-  Serial.println(WaterLevelProbe.state);
->>>>>>> origin/master
-}
+
 
 void turnLightOn() {
-  LightRelay.turnOn();
+	Relays[LIGHT].turnOn();
 }
 
 void turnLightOff() {
-  LightRelay.turnOff();
+	Relays[LIGHT].turnOff();
 }
 
 void turnCo2On() {
-  CO2Relay.turnOn();
+	Relays[CO2].turnOn();
 }
 
 void turnCo2Off() {
-  CO2Relay.turnOff();
+  Relays[CO2].turnOff();
 }
 
 void printNow() {
-<<<<<<< HEAD
-	Serial.print("### RTC Running ? ");
-	Serial.println(RTC.chipPresent());
-	Serial.print(RTC.get());
+	Serial.print("### RTC Running :  ");
+	Serial.print(RTC.chipPresent());
+	Serial.print("   Now = ");;
+	Serial.println(RTC.get());
 }
 
-const int ledPin = 12;
-int ledState = LOW;             // ledState used to set the LED
-long previousMillis = 0;        // will store last time LED was updated
-long interval = 100;  
-
-
-void setup()
-{
-        digitalWrite(13, LOW);
-	pinMode(ledPin, OUTPUT);
-	Serial.begin(9600);
-	Serial.println("BEGIN");
-=======
-  time_t n = RTC.get();
-  if ( n == 0) {
-    SetupRtc();
-  }
-  Serial.print("### RTC Running :  ");
-  Serial.print(RTC.chipPresent());
-  Serial.print("   Now = "); ;
-  Serial.println(RTC.get());
-}
 
 const char *monthName[12] = {
   "Jan", "Feb", "Mar", "Apr", "May", "Jun",
@@ -252,13 +223,75 @@ void SetupRtc() {
   }
 }
 
+CmdMessenger cmdMessenger = CmdMessenger(Serial);
+
+enum
+{
+	kCommandList, // Command to request list of available commands
+	kSetRelay, // Command to request led to be set in specific state
+	kSetTime, // Command to request led to be set in to specific brightness
+	kSetAlarm, // Command to request led status
+};
+
+// Callbacks define on which received commands we take action
+void attachCommandCallbacks()
+{
+	// Attach callback methods
+	cmdMessenger.attach(OnUnknownCommand);
+	cmdMessenger.attach(kCommandList, OnCommandList);
+	cmdMessenger.attach(kSetRelay, OnSetRelay);
+	cmdMessenger.attach(kSetTime, OnSetTime);
+	cmdMessenger.attach(kSetAlarm, OnSetAlarm);
+}
+
+// Show available commands
+void ShowCommands()
+{
+	Serial.println("Available commands");
+	Serial.println(" 0; - This command list");
+	Serial.println(" 1,<Relay Number>,<Relay state>; - Set relay. 0 = off, 1 = on");
+	Serial.print(" 2,<Time>; - Set Time ");
+	Serial.println(" 3,<alarm nb>,<start/end>,<time>; - Set Alarm start or end");
+}
+
+// Called when a received command has no attached function
+void OnUnknownCommand()
+{
+	Serial.println("This command is unknown!");
+	ShowCommands();
+}
+
+void OnCommandList() {
+	ShowCommands();
+}
+
+void OnSetRelay() {
+	int16_t relay = cmdMessenger.readInt16Arg();
+	bool on = cmdMessenger.readBoolArg();
+	if (on) {
+		Relays[relay].turnOn();
+	}
+	else {
+		Relays[relay].turnOff();
+	}
+}
+
+void OnSetTime() {
+
+}
+
+void OnSetAlarm() {
+}
+
 void setup()
 {
   delay(2000);
->>>>>>> origin/master
 
   Serial.begin(9600);
   Serial.println("BEGIN");
+
+  InitRelays();
+  Relays[FILTER].turnOn();
 
   Serial.println("###  Initializing Settings");
   initSetting();
@@ -266,84 +299,61 @@ void setup()
   Serial.print("Light Timers = Start : "); Serial.print(settings.startLightTime); Serial.print(" Stop : ");  Serial.println(settings.stopLightTime);
   Serial.print("CO2 Timers = Start : "); Serial.print(settings.startCo2Time); Serial.print(" Stop : ");  Serial.println(settings.stopCo2Time);
 
-  TempProbe.Init(TEMPERATURE_PIN, settings.targetTemperature, &HeatingRelay);
+
+  TempProbe.Init(TEMPERATURE_PIN, settings.targetTemperature, &(Relays[HEATING]));
 
   setSyncProvider(RTC.get);
   setSyncInterval(600);
-  printNow();
+  
+  time_t n = RTC.get();
+  if (n == 0) {
+	  SetupRtc();
+  }
 
   temperatureTimer = Alarm.timerRepeat(15, temperatureCheck);
   waterLevelTimer = Alarm.timerRepeat(10, waterLevelCheck);
 
   startLightTimer = Alarm.alarmRepeat(settings.startLightTime, turnLightOn);
   stopLightTimer = Alarm.alarmRepeat(settings.stopLightTime, turnLightOff);
-
-<<<<<<< HEAD
-	time_t time = now() - previousMidnight(now());
-	
-	Serial.print("Now = "); Serial.print(now()); Serial.print("Time = "); Serial.println(time);
-=======
   startCO2Timer = Alarm.alarmRepeat(settings.startCo2Time, turnCo2On);
   stopCO2Timer = Alarm.alarmRepeat(settings.stopCo2Time, turnCo2Off);
->>>>>>> origin/master
 
-  time_t time = now() - previousMidnight(now());
-  Serial.print ( "Time = ");         Serial.println ( time) ;
-  if (time > settings.startLightTime && time < settings.startLightTime) {
-    LightRelay.turnOn();
-  }
-  else
-    LightRelay.turnOff();
 
-  if (time > settings.startCo2Time && time < settings.stopCo2Time) {
-    CO2Relay.turnOn();
-  }
-  else
-    CO2Relay.turnOff();
+	time_t time = now() - previousMidnight(now());
+	Serial.print("Now = "); Serial.print(now()); Serial.print("Time = "); Serial.println(time);
 
-  FilterRelay.turnOn();
-  wifiManager.init();
+	  if (time > settings.startLightTime && time < settings.startLightTime) {
+		Relays[LIGHT].turnOn();
+	  }
+	  else
+		Relays[LIGHT].turnOff();
+
+	  if (time > settings.startCo2Time && time < settings.stopCo2Time) {
+		  Relays[CO2].turnOn();
+	  }
+	  else
+		  Relays[CO2].turnOff();
+
+	  // Adds newline to every command
+	  cmdMessenger.printLfCr();
+	  // Attach my application's user-defined callback methods
+	  attachCommandCallbacks();
+
+	  wifiManager.init();
 }
 
 
 void loop()
 {
-<<<<<<< HEAD
-	if (Serial.available()) {
-		Serial3.write(Serial.read());
-	}
       if(Serial3.available()) {
         Serial.print("ESP -> ");
         while (Serial3.available()) 
             Serial.write(Serial3.read());
       }
-  	Alarm.delay(10);
+
+	  cmdMessenger.feedinSerialData();
+
+	  Alarm.delay(10);
   
-    unsigned long currentMillis = millis();
- 
-    if(currentMillis - previousMillis > interval) {
-      // save the last time you blinked the LED 
-      previousMillis = currentMillis;   
    
-      // if the LED is off turn it on and vice-versa:
-      if (ledState == LOW)
-        ledState = HIGH;
-      else
-        ledState = LOW;
-       
-      // set the LED with the ledState of the variable:
-      digitalWrite(ledPin, ledState);
-   }
-  
-=======
-  if (Serial.available()) {
-    Serial3.write(Serial.read());
-  }
-  if (Serial3.available()) {
-    Serial.print("ESP -> ");
-    while (Serial3.available())
-      Serial.write(Serial3.read());
-  }
-  Alarm.delay(10);
->>>>>>> origin/master
 }

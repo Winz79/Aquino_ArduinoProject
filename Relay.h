@@ -16,7 +16,8 @@ class Relay
 	 uint8_t pin;
 	 bool _isOn;
  public:
-	Relay(uint8_t, bool);
+	 Relay();
+	 Relay(uint8_t, bool);
 	void init();
 	void turnOn();
 	void turnOff();

@@ -4,6 +4,8 @@
 
 #include "Relay.h"
 
+Relay::Relay() {}
+
 Relay::Relay(uint8_t rPin, bool normallyOpen) {
 	isNormallyOpen = normallyOpen;
 	pin = rPin;
